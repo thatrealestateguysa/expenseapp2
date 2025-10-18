@@ -5,9 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Property Revolution Expenses</title>
   <meta name="theme-color" content="#D40511" />
-  <link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="manifest.json?v=v6" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.v6.css?v=v6" />
+  <script>
+    if (location.hash === '#reset' && 'serviceWorker' in navigator) {
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => navigator.serviceWorker.getRegistrations())
+        .then(rs => Promise.all(rs.map(r => r.unregister())))
+        .then(() => location.replace(location.href.split('#')[0] + '?t=1760811259'));
+    }
+  </script>
 </head>
 <body>
   <header class="app-header">
@@ -15,10 +23,13 @@
       <img src="assets/pr-logo.png" alt="PR" onerror="this.style.display='none'">
       <div class="titles">
         <h1>Expenses</h1>
-        <p id="syncStatus" class="status">Checking connection…</p>
+        <p id="syncStatus" class="status">Loading…</p>
       </div>
     </div>
-    <button id="openSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+    <div class="header-actions">
+      <button id="checkBtn" class="icon-btn" title="Check connection">🔌</button>
+      <button id="openSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+    </div>
   </header>
 
   <main class="container">
@@ -99,7 +110,7 @@
         <button value="cancel" class="btn">Cancel</button>
         <button id="saveSettings" value="default" class="btn primary">Save</button>
       </menu>
-      <p class="hint">Access must be <b>Anyone</b> and Execute as <b>Me</b>. Open the URL once in this browser to verify.</p>
+      <p class="hint">Visit <b>#reset</b> to clear cache if things look stale.</p>
     </form>
   </dialog>
 
@@ -107,6 +118,6 @@
     <small>© Property Revolution — built for KW Explore • Works offline & installable</small>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.v6.js?v=v6"></script>
 </body>
 </html>
