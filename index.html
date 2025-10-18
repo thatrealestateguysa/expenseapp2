@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Property Revolution Expenses</title>
+  <meta name="theme-color" content="#D40511" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="assets/pr-logo.png" alt="PR" onerror="this.style.display='none'">
+      <div class="titles">
+        <h1>Property Revolution Expenses</h1>
+        <p id="syncStatus" class="status status-disconnected">Not connected</p>
+      </div>
+    </div>
+    <button id="openSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+  </header>
+
+  <main class="container">
+    <section class="cards">
+      <div class="card"><h3>Total Expenses</h3><div id="totalExpenses" class="money neg">R0.00</div></div>
+      <div class="card"><h3>Total Income</h3><div id="totalIncome" class="money pos">R0.00</div></div>
+      <div class="card"><h3>Net Balance</h3><div id="netBalance" class="money">R0.00</div></div>
+    </section>
+
+    <section class="form-wrap">
+      <div class="form-header">
+        <h2>Add New Entry</h2>
+        <div class="pill-toggle" role="tablist" aria-label="Entry Type">
+          <button id="tabExpense" class="pill active" role="tab" aria-selected="true">Expense</button>
+          <button id="tabIncome" class="pill" role="tab" aria-selected="false">Income</button>
+        </div>
+      </div>
+
+      <form id="entryForm" class="form" autocomplete="off">
+        <div class="field">
+          <label for="date">Date</label>
+          <input id="date" name="date" type="date" required />
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <input id="description" name="description" type="text" placeholder="What was this for?" required />
+        </div>
+        <div class="field">
+          <label for="costCode">Cost Code</label>
+          <select id="costCode" name="costCode" required>
+            <option disabled selected value="">Select a category</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="amount">Amount (ZAR)</label>
+          <div class="prefix">
+            <span>R</span>
+            <input id="amount" name="amount" type="number" step="0.01" min="0" required />
+          </div>
+        </div>
+        <div class="field">
+          <label>Receipt Image</label>
+          <div class="actions">
+            <input id="cameraInput" type="file" accept="image/*" capture="environment" style="display:none" />
+            <input id="fileInput" type="file" accept="image/*" style="display:none" />
+            <button type="button" id="btnCamera" class="btn dark">📷 Take Photo</button>
+            <button type="button" id="btnUpload" class="btn dark">⤴️ Upload</button>
+            <div id="preview" class="preview"></div>
+          </div>
+        </div>
+
+        <button class="btn primary" id="saveBtn" type="submit">Save Entry</button>
+        <div id="saveMsg" class="save-msg" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section class="list-wrap">
+      <h2>Recent Entries</h2>
+      <div id="entriesList" class="list empty">
+        <div class="empty-state">
+          <div class="icon">📄</div>
+          <div>No entries yet. Add your first transaction above.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="settingsModal">
+    <form method="dialog" class="settings">
+      <h3>App Settings</h3>
+      <label>Google Apps Script Web App URL
+        <input id="cfgUrl" type="url" placeholder="https://script.google.com/macros/s/XXXXX/exec" required />
+      </label>
+      <label>Cost Codes (comma separated)
+        <textarea id="cfgCodes" rows="3"></textarea>
+      </label>
+      <menu>
+        <button value="cancel" class="btn">Cancel</button>
+        <button id="saveSettings" value="default" class="btn primary">Save</button>
+      </menu>
+      <p class="hint">Paste a deployed Web App URL. This build ships with your URL preloaded.</p>
+    </form>
+  </dialog>
+
+  <footer class="footer">
+    <small>© Property Revolution — built for KW Explore • Works offline & installable</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
