@@ -1,5 +1,5 @@
 
-const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbywqKzddWQA0-pMqlmKhAkeBHE7K7RAUFiwSCJ9VaNF-103MbBJ9XhT_AjKbj8XqQ5_/exec";
+const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwJyhAOSASwYhBuwKfr2AOkVQ4YeFl_eYkcd6ZJXWndw53nFEDDB2x9_LRUZ0l6uLh5/exec";
 const DEFAULT_COST_CODES = ["Marketing","Travel","Office Supplies","Fuel","Meals & Entertainment","Repairs & Maintenance","Software & Subscriptions","Utilities","Professional Fees","Commissions","Rent","Salaries","Training","Miscellaneous"];
 
 const costCodeSelect=document.getElementById("costCode");
@@ -75,8 +75,9 @@ document.getElementById("entryForm").addEventListener("submit", async (ev)=>{
     const payload=await buildPayload();
     const url=localStorage.getItem("pr.webAppUrl")||DEFAULT_WEB_APP_URL;
 
-    // Send as text/plain to avoid iOS preflight
-    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"record",data:payload})});
+    // Send as application/x-www-form-urlencoded (simple request, no OPTIONS preflight)
+    const body="payload="+encodeURIComponent(JSON.stringify({action:"record",data:payload}));
+    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});
     if(!res.ok) throw new Error("Network error: "+res.status);
     const json=await res.json();
     if(!json.ok) throw new Error(json.error||"Server error");
