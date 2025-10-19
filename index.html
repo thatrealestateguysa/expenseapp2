@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Property Revolution Expenses</title>
   <meta name="theme-color" content="#D40511" />
-  <link rel="manifest" href="manifest.json?v=v8" />
+  <link rel="manifest" href="manifest.json?v=v11" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.v8.css?v=v8" />
+  <link rel="stylesheet" href="styles.v11.css?v=v11" />
   <script>
     if (location.hash === '#reset' && 'serviceWorker' in navigator) {
       caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
@@ -17,12 +16,11 @@
         .then(() => location.replace(location.origin + location.pathname + '?t=' + Date.now()));
     }
   </script>
-  <style>.debug{position:fixed;bottom:8px;left:8px;background:#111;color:#fff;padding:8px 10px;border-radius:10px;font:12px/1.2 ui-sans-serif;opacity:.9;z-index:9999;}</style>
+  <style>.debug{position:fixed;bottom:8px;left:8px;background:#111;color:#fff;padding:8px 10px;border-radius:10px;font:12px/1.2 ui-sans-serif;opacity:.9;z-index:9999;display:none}</style>
 </head>
 <body>
   <header class="app-header">
     <div class="brand">
-      <img src="assets/pr-logo.png" alt="PR" onerror="this.style.display='none'">
       <div class="titles">
         <h1>Expenses</h1>
         <p id="syncStatus" class="status">Loading…</p>
@@ -61,9 +59,12 @@
         </div>
         <div class="field">
           <label for="costCode">Cost Code</label>
-          <select id="costCode" name="costCode" required>
-            <option disabled selected value="">Select a category</option>
-          </select>
+          <div style="display:flex; gap:8px; align-items:center">
+            <select id="costCode" name="costCode" required style="flex:1">
+              <option disabled selected value="">Select a category</option>
+            </select>
+            <button type="button" id="addCodeBtn" class="btn">＋ Add Code</button>
+          </div>
         </div>
         <div class="field">
           <label for="amount">Amount (ZAR)</label>
@@ -99,21 +100,17 @@
       <label>Google Apps Script Web App URL
         <input id="cfgUrl" type="url" placeholder="https://script.google.com/macros/s/XXXXX/exec" required />
       </label>
-      <label>Cost Codes (comma separated)
-        <textarea id="cfgCodes" rows="3"></textarea>
-      </label>
       <menu>
         <button value="cancel" class="btn">Cancel</button>
         <button id="saveSettings" value="default" class="btn primary">Save</button>
       </menu>
-      <p class="hint">Visit <b>#reset</b> to clear cache if things look stale.</p>
+      <p class="hint">After updating the URL, open the app with <b>#reset</b> once to clear caches.</p>
     </form>
   </dialog>
 
-  <div id="dbg" class="debug" style="display:none"></div>
-
+  <div id="dbg" class="debug"></div>
   <footer class="footer"><small>© Property Revolution — built for KW Explore</small></footer>
 
-  <script defer src="app.v8.js?v=v8"></script>
+  <script defer src="app.v11.js?v=v11"></script>
 </body>
 </html>
