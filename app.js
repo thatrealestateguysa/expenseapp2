@@ -1,126 +1,285 @@
+// Property Revolution Finance App — Frontend
+// Prefilled with Dawie's backend URL. PWA-ready.
 
-const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwJyhAOSASwYhBuwKfr2AOkVQ4YeFl_eYkcd6ZJXWndw53nFEDDB2x9_LRUZ0l6uLh5/exec";
-const DEFAULT_COST_CODES = ["Marketing","Travel","Office Supplies","Fuel","Meals & Entertainment","Repairs & Maintenance","Software & Subscriptions","Utilities","Professional Fees","Commissions","Rent","Salaries","Training","Miscellaneous"];
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
 
-const costCodeSelect=document.getElementById("costCode");
-const dateEl=document.getElementById("date");
-const descriptionEl=document.getElementById("description");
-const amountEl=document.getElementById("amount");
-const cameraInput=document.getElementById("cameraInput");
-const fileInput=document.getElementById("fileInput");
-const preview=document.getElementById("preview");
-const saveBtn=document.getElementById("saveBtn");
-const saveMsg=document.getElementById("saveMsg");
-const openSettingsBtn=document.getElementById("openSettings");
-const settingsModal=document.getElementById("settingsModal");
-const cfgUrl=document.getElementById("cfgUrl");
-const cfgCodes=document.getElementById("cfgCodes");
-const syncStatus=document.getElementById("syncStatus");
-const totalExpensesEl=document.getElementById("totalExpenses");
-const totalIncomeEl=document.getElementById("totalIncome");
-const netBalanceEl=document.getElementById("netBalance");
-const entriesList=document.getElementById("entriesList");
+const DEFAULT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwTa5bFBif0OUXxY4XW2NGByn41JzMGdIGJXC-3KucWyvgtRfLPvwdSJzGZQ2ixErJLzA/exec";
 
-let entryType="expense";
-let chosenFile=null;
+const state = {
+  entries: [],
+  webAppUrl: localStorage.getItem('prfa_webAppUrl') || DEFAULT_WEBAPP_URL,
+  opaqueMode: localStorage.getItem('prfa_opaqueMode') === '1',
+  costCodes: []
+};
 
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(console.warn));}
+// UI elements
+const form = $('#entryForm');
+const message = $('#message');
+const receiptInput = $('#receipt');
+const preview = $('#preview');
+const listDiv = $('#entries');
+const listCount = $('#listCount');
+const openSettings = $('#openSettings');
+const settingsDialog = $('#settingsDialog');
+const opaqueMode = $('#opaqueMode');
+const webAppUrl = $('#webAppUrl');
+const syncNow = $('#syncNow');
+const refreshList = $('#refreshList');
+const useCamera = $('#useCamera');
 
-(async function init(){
-  if(!localStorage.getItem("pr.webAppUrl")) localStorage.setItem("pr.webAppUrl", DEFAULT_WEB_APP_URL);
-  const t=new Date(); const yyyy=t.getFullYear(), mm=String(t.getMonth()+1).padStart(2,"0"), dd=String(t.getDate()).padStart(2,"0");
-  dateEl.value=`${yyyy}-${mm}-${dd}`;
-
-  const url=localStorage.getItem("pr.webAppUrl")||DEFAULT_WEB_APP_URL;
-  const codes=JSON.parse(localStorage.getItem("pr.costCodes")||"[]");
-  cfgUrl.value=url; cfgCodes.value=(codes.length?codes:DEFAULT_COST_CODES).join(", "); applyCostCodes(codes.length?codes:DEFAULT_COST_CODES);
-
-  document.getElementById("tabExpense").addEventListener("click",()=>setType("expense"));
-  document.getElementById("tabIncome").addEventListener("click",()=>setType("income"));
-  document.getElementById("btnCamera").addEventListener("click",()=>cameraInput.click());
-  document.getElementById("btnUpload").addEventListener("click",()=>fileInput.click());
-  cameraInput.addEventListener("change",onPickFile);
-  fileInput.addEventListener("change",onPickFile);
-  openSettingsBtn.addEventListener("click",()=>settingsModal.showModal());
-  document.getElementById("saveSettings").addEventListener("click",(e)=>{e.preventDefault();
-    localStorage.setItem("pr.webAppUrl", cfgUrl.value.trim());
-    const list=cfgCodes.value.split(",").map(s=>s.trim()).filter(Boolean);
-    localStorage.setItem("pr.costCodes", JSON.stringify(list)); applyCostCodes(list); settingsModal.close(); healthCheck();
+// Tabs
+$$('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.target;
+    $$('.panel').forEach(p => p.classList.remove('active'));
+    $('#'+target).classList.add('active');
   });
-
-  renderFromCache();
-  await healthCheck();
-})();
-
-async function healthCheck(){
-  syncStatus.textContent="Checking connection…"; syncStatus.className="status";
-  const url=localStorage.getItem("pr.webAppUrl")||DEFAULT_WEB_APP_URL;
-  try{
-    const res=await fetch(url,{method:"GET"});
-    if(!res.ok){ syncStatus.textContent=`Backend error ${res.status}`; syncStatus.className="status status-bad"; return; }
-    await res.text(); syncStatus.textContent="Syncing to Google Sheets"; syncStatus.className="status status-ok";
-  }catch(err){
-    syncStatus.textContent="Cannot reach backend (permissions). Web App must be 'Anyone', execute as 'Me'."; 
-    syncStatus.className="status status-bad";
-  }
-}
-
-function setType(type){entryType=type;document.getElementById("tabExpense").classList.toggle("active",type==="expense");document.getElementById("tabIncome").classList.toggle("active",type==="income");}
-function applyCostCodes(list){costCodeSelect.innerHTML=`<option disabled selected value="">Select a category</option>`+list.map(c=>`<option value="${c}">${c}</option>`).join("");}
-function onPickFile(ev){const f=ev.target.files[0];if(!f)return;chosenFile=f;const reader=new FileReader();reader.onload=()=>{preview.innerHTML=`<img src="${reader.result}" alt="receipt preview" />`;};reader.readAsDataURL(f);}
-
-document.getElementById("entryForm").addEventListener("submit", async (ev)=>{
-  ev.preventDefault(); saveMsg.textContent=""; saveBtn.disabled=true;
-  try{
-    const payload=await buildPayload();
-    const url=localStorage.getItem("pr.webAppUrl")||DEFAULT_WEB_APP_URL;
-
-    // Send as application/x-www-form-urlencoded (simple request, no OPTIONS preflight)
-    const body="payload="+encodeURIComponent(JSON.stringify({action:"record",data:payload}));
-    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});
-    if(!res.ok) throw new Error("Network error: "+res.status);
-    const json=await res.json();
-    if(!json.ok) throw new Error(json.error||"Server error");
-
-    const entry={...payload, receiptUrl: json.receiptUrl, id: json.rowNumber || Date.now()};
-    addToCache(entry); renderFromCache(); clearForm(); saveMsg.textContent="Saved ✓"; saveMsg.style.color="#059669";
-  }catch(err){
-    saveMsg.textContent=(err && err.message) ? err.message : "Load failed";
-    saveMsg.style.color="#b91c1c";
-  }finally{ saveBtn.disabled=false; }
 });
 
-async function buildPayload(){
-  const date=dateEl.value, description=(descriptionEl.value||"").trim(), costCode=costCodeSelect.value, amount=parseFloat(amountEl.value);
-  if(!date||!description||!costCode||isNaN(amount)) throw new Error("Please fill in all fields.");
-  let receipt=null;
-  if(chosenFile){
-    const dataUrl=await downscaleToJpegDataUrl(chosenFile,1600,0.85);
-    const [meta,b64]=dataUrl.split(",");
-    const mime=meta.split(":")[1].split(";")[0];
-    receipt={name:sanitizeFileName(`${date}-${description}`)+".jpg",mimeType:mime,dataBase64:b64};
+// Header year
+$('#year').textContent = new Date().getFullYear();
+
+// Date default
+$('#date').valueAsDate = new Date();
+
+// Settings dialog
+openSettings.addEventListener('click', () => settingsDialog.showModal());
+webAppUrl.value = state.webAppUrl;
+opaqueMode.checked = state.opaqueMode;
+$('#testBackend').addEventListener('click', testBackend);
+
+webAppUrl.addEventListener('input', () => {
+  state.webAppUrl = webAppUrl.value.trim();
+  localStorage.setItem('prfa_webAppUrl', state.webAppUrl);
+});
+opaqueMode.addEventListener('change', () => {
+  state.opaqueMode = opaqueMode.checked;
+  localStorage.setItem('prfa_opaqueMode', state.opaqueMode ? '1' : '0');
+});
+
+// Camera shortcut
+useCamera.addEventListener('click', () => {
+  receiptInput.setAttribute('capture','environment');
+  receiptInput.click();
+});
+
+// Cost Codes
+async function loadCostCodes() {
+  const select = $('#costCode');
+  select.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+  const url = state.webAppUrl ? `${state.webAppUrl}?fn=costCodes` : null;
+  try {
+    if (!url) throw new Error('No backend URL');
+    const r = await fetch(url, { method: 'GET' });
+    const data = await r.json();
+    const codes = Array.isArray(data?.codes) ? data.codes : [];
+    state.costCodes = codes.length ? codes : ['Marketing','Travel','Office Supplies','Fuel','Repairs','Meals','Advertising','Utilities','Rent','Salaries','Software','Misc'];
+  } catch (e) {
+    state.costCodes = ['Marketing','Travel','Office Supplies','Fuel','Repairs','Meals','Advertising','Utilities','Rent','Salaries','Software','Misc'];
   }
-  return {type:entryType,date,description,costCode,amount,receipt};
+  select.innerHTML = `<option value="" disabled selected>Select cost code</option>` +
+    state.costCodes.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
-function sanitizeFileName(s){return s.replace(/[^a-z0-9\\-_.]+/gi,"_").slice(0,80)||"receipt";}
-function addToCache(item){const list=JSON.parse(localStorage.getItem("pr.entries")||"[]");list.unshift(item);localStorage.setItem("pr.entries",JSON.stringify(list.slice(0,200)));}
-function renderFromCache(){const list=JSON.parse(localStorage.getItem("pr.entries")||"[]");let income=0,expenses=0;list.forEach(e=>{if(e.type==="income")income+=Number(e.amount||0);else expenses+=Number(e.amount||0);});totalIncomeEl.textContent=formatMoney(income);totalExpensesEl.textContent=formatMoney(expenses);netBalanceEl.textContent=formatMoney(income-expenses);if(!list.length){entriesList.classList.add("empty");entriesList.innerHTML=`<div class="empty-state"><div class="icon">📄</div><div>No entries yet. Add your first transaction above.</div></div>`;return;}entriesList.classList.remove("empty");entriesList.innerHTML=list.map(e=>{const cls=e.type==="income"?"income":"expense";const link=e.receiptUrl?`<a href="${e.receiptUrl}" target="_blank" rel="noopener">Receipt</a>`:`<span class="meta">No receipt</span>`;return `<div class="entry"><div><div><strong>${escapeHTML(e.description)}</strong></div><div class="meta">${e.date} • ${escapeHTML(e.costCode)} • ${e.type}</div></div><div class="amount ${cls}">${formatMoney(e.amount)}</div><div>${link}</div></div>`;}).join("");}
-function clearForm(){descriptionEl.value="";amountEl.value="";costCodeSelect.value="";chosenFile=null;preview.innerHTML="";}
-function formatMoney(n){try{return new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(n);}catch(_){return "R"+(Number(n).toFixed(2));}}
-function escapeHTML(s){return s.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',\"'\":'&#39;','\"':'&quot;'}[c]));}
+// Image preview & compression
+let imageDataUrl = null;
 
-// downscale for reliable mobile uploads
-function downscaleToJpegDataUrl(file, maxDim=1600, quality=0.85){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader(); reader.onload=()=>{
-      const img=new Image(); img.onload=()=>{
-        let w=img.width,h=img.height;
-        if(Math.max(w,h)>maxDim){ const ratio=maxDim/Math.max(w,h); w=Math.round(w*ratio); h=Math.round(h*ratio); }
-        const canvas=document.createElement("canvas"); canvas.width=w; canvas.height=h;
-        const ctx=canvas.getContext("2d"); ctx.drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      }; img.onerror=reject; img.src=reader.result;
-    }; reader.onerror=reject; reader.readAsDataURL(file);
+receiptInput.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const dataUrl = await fileToDataURL(file);
+  const compressed = await compressImage(dataUrl, 1600, 0.85);
+  imageDataUrl = compressed;
+  await drawPreview(compressed);
+});
+
+async function fileToDataURL(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
+
+async function compressImage(dataUrl, maxW=1600, quality=0.85){
+  const img = new Image();
+  img.src = dataUrl;
+  await img.decode();
+  const scale = Math.min(1, maxW / img.width);
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function drawPreview(dataUrl){
+  const img = new Image();
+  img.src = dataUrl;
+  await img.decode();
+  const ctx = preview.getContext('2d');
+  preview.width = img.width;
+  preview.height = img.height;
+  ctx.drawImage(img, 0, 0);
+  preview.hidden = false;
+}
+
+// Local storage
+function loadEntries(){
+  state.entries = JSON.parse(localStorage.getItem('prfa_entries') || '[]');
+}
+function saveEntries(){
+  localStorage.setItem('prfa_entries', JSON.stringify(state.entries));
+}
+function addEntry(entry){
+  state.entries.unshift(entry);
+  saveEntries();
+  renderList();
+}
+
+function renderList(){
+  listDiv.innerHTML = '';
+  listCount.textContent = `${state.entries.length} saved`;
+  state.entries.forEach((e,i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <div>
+        <div class="meta">
+          <span class="badge">${e.type}</span> • ${e.date} • R ${Number(e.amount).toFixed(2)}
+        </div>
+        <div class="kv">
+          <strong>Cost Code</strong><span>${e.costCode}</span>
+          <strong>Description</strong><span>${e.description}</span>
+          <strong>Purpose</strong><span>${e.whatFor || ''}</span>
+          <strong>Status</strong><span>${e.synced ? 'Synced' : 'Pending'}</span>
+        </div>
+      </div>
+      <div>
+        <button data-i="${i}" class="btn ghost del">Delete</button>
+      </div>
+    `;
+    listDiv.appendChild(el);
+  });
+  $$('.del').forEach(btn => btn.addEventListener('click', (ev) => {
+    const idx = Number(ev.currentTarget.dataset.i);
+    state.entries.splice(idx,1);
+    saveEntries();
+    renderList();
+  }));
+}
+
+refreshList.addEventListener('click', renderList);
+
+// Submit
+form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const entry = {
+    id: crypto.randomUUID(),
+    type: $('#type').value,
+    date: $('#date').value,
+    amount: $('#amount').value,
+    costCode: $('#costCode').value,
+    description: $('#description').value,
+    whatFor: $('#whatFor').value,
+    vendor: $('#vendor').value,
+    paymentMethod: $('#paymentMethod').value,
+    imageDataUrl,
+    createdAt: new Date().toISOString(),
+    synced: false
+  };
+  if (!entry.costCode) return setMessage('Please choose a cost code.');
+  if (!entry.amount || Number(entry.amount) <= 0) return setMessage('Please enter a valid amount.');
+
+  addEntry(entry);
+  form.reset();
+  imageDataUrl = null;
+  preview.hidden = true;
+  setMessage('Saved locally. Attempting sync…');
+  await syncQueue();
+});
+
+syncNow.addEventListener('click', syncQueue);
+
+function setMessage(text){
+  message.textContent = text || '';
+  if (text) { setTimeout(()=> message.textContent='', 4000); }
+}
+
+// Sync logic
+async function syncQueue(){
+  if (!state.webAppUrl) return setMessage('Add your Web App URL in Settings first.');
+  let success = 0, fail = 0;
+  for (const e of state.entries) {
+    if (e.synced) continue;
+    const payload = {
+      action: 'submit',
+      entry: e
+    };
+    try {
+      const r = await fetch(state.webAppUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: state.opaqueMode ? 'no-cors' : 'cors'
+      });
+      if (state.opaqueMode) {
+        e.synced = true; success++;
+      } else {
+        if (r.ok) {
+          const data = await r.json();
+          if (data?.ok) { e.synced = true; success++; } else { fail++; }
+        } else {
+          fail++;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      fail++;
+    }
+  }
+  saveEntries();
+  renderList();
+  setMessage(`Sync complete. ${success} sent, ${fail} failed.`);
+}
+
+// Backend health check
+async function testBackend(){
+  $('#settingsMsg').textContent = 'Checking…';
+  if (!state.webAppUrl) {
+    $('#settingsMsg').textContent = 'Enter a Web App URL first.';
+    return;
+  }
+  try {
+    const r = await fetch(`${state.webAppUrl}?fn=health`, { method: 'GET' });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const data = await r.json();
+    if (data?.ok) {
+      $('#settingsMsg').textContent = 'Connected.';
+      await loadCostCodes();
+    } else {
+      $('#settingsMsg').textContent = 'No response from backend.';
+    }
+  } catch (e) {
+    $('#settingsMsg').textContent = 'Could not reach backend.';
+  }
+}
+
+// Init
+function init(){
+  // Service worker
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js'); }
+  loadEntries();
+  renderList();
+  loadCostCodes();
+  // Prefill settings
+  webAppUrl.value = state.webAppUrl;
+  opaqueMode.checked = state.opaqueMode;
+}
+init();

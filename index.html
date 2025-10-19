@@ -1,88 +1,141 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Property Revolution Expenses</title>
   <meta name="theme-color" content="#D40511" />
-  <link rel="manifest" href="manifest.json?v=v14" />
-  <link rel="icon" type="image/png" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.v14.css?v=v14" />
-  <script>
-    if (location.hash === '#reset' && 'serviceWorker' in navigator) {
-      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-        .then(() => navigator.serviceWorker.getRegistrations())
-        .then(rs => Promise.all(rs.map(r => r.unregister())))
-        .then(() => location.replace(location.origin + location.pathname + '?t=' + Date.now()));
-    }
-  </script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon-192.png" sizes="192x192">
+  <title>Property Revolution Finance App</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="app-header">
-    <div class="brand"><h1>Expenses</h1><p id="syncStatus" class="status">Loading…</p></div>
-    <div class="header-actions">
-      <button id="checkBtn" class="icon-btn">🔌</button>
-      <button id="openSettings" class="icon-btn">⚙️</button>
+    <div class="brand">
+      <img src="assets/expense-tracker-with-text.png" alt="PR Expense Tracker" class="brand-img" onerror="this.style.display='none'">
+      <div class="titles">
+        <h1>Property Revolution</h1>
+        <h2>Finance App</h2>
+      </div>
     </div>
+    <button id="openSettings" class="btn ghost">Settings</button>
   </header>
 
   <main class="container">
-    <section class="cards">
-      <div class="card"><h3>Total Expenses</h3><div id="totalExpenses" class="money neg">R0.00</div></div>
-      <div class="card"><h3>Total Income</h3><div id="totalIncome" class="money pos">R0.00</div></div>
-      <div class="card"><h3>Net Balance</h3><div id="netBalance" class="money">R0.00</div></div>
-    </section>
+    <nav class="tabs">
+      <button class="tab active" data-target="capture">Capture</button>
+      <button class="tab" data-target="list">Entries</button>
+      <button class="tab" data-target="about">About</button>
+    </nav>
 
-    <section class="form-wrap">
-      <div class="form-header">
-        <h2>Add New Entry</h2>
-        <div class="pill-toggle">
-          <button id="tabExpense" class="pill active">Expense</button>
-          <button id="tabIncome" class="pill">Income</button>
+    <section id="capture" class="panel active">
+      <form id="entryForm" autocomplete="off">
+        <div class="row">
+          <label>Type</label>
+          <select id="type" required>
+            <option value="Expense">Expense</option>
+            <option value="Income">Income</option>
+          </select>
         </div>
-      </div>
 
-      <form id="entryForm" class="form" autocomplete="off">
-        <div class="field"><label>Date</label><input id="date" type="date" required /></div>
-        <div class="field"><label>Description</label><input id="description" type="text" placeholder="What was this for?" required /></div>
-        <div class="field">
+        <div class="row">
+          <label>Date</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="row">
+          <label>Amount (ZAR)</label>
+          <input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+
+        <div class="row">
           <label>Cost Code</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="costCode" required style="flex:1"><option disabled selected value="">Select a category</option></select>
-            <button type="button" id="addCodeBtn" class="btn">＋ Add Code</button>
+          <select id="costCode" required>
+            <option value="" disabled selected>Loading...</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>Description</label>
+          <input type="text" id="description" maxlength="140" placeholder="Short description" required>
+        </div>
+
+        <div class="row">
+          <label>What it was for</label>
+          <input type="text" id="whatFor" maxlength="140" placeholder="Purpose / context">
+        </div>
+
+        <div class="row two">
+          <div>
+            <label>Vendor (optional)</label>
+            <input type="text" id="vendor" maxlength="120" placeholder="e.g., Makro">
+          </div>
+          <div>
+            <label>Payment Method (optional)</label>
+            <input type="text" id="paymentMethod" maxlength="60" placeholder="Card / EFT / Cash">
           </div>
         </div>
-        <div class="field"><label>Amount (ZAR)</label><div class="prefix"><span>R</span><input id="amount" type="number" step="0.01" min="0" required /></div></div>
-        <div class="field">
-          <label>Receipt Image</label>
-          <div class="actions">
-            <input id="cameraInput" type="file" accept="image/*" capture="environment" style="display:none" />
-            <input id="fileInput" type="file" accept="image/*" style="display:none" />
-            <button type="button" id="btnCamera" class="btn dark">📷 Take Photo</button>
-            <button type="button" id="btnUpload" class="btn dark">⤴️ Upload</button>
-            <div id="preview" class="preview"></div>
+
+        <div class="row">
+          <label>Receipt Photo</label>
+          <div class="file-row">
+            <input type="file" id="receipt" accept="image/*" capture="environment">
+            <button type="button" id="useCamera" class="btn ghost">Use Camera</button>
           </div>
+          <canvas id="preview" class="preview" hidden></canvas>
         </div>
-        <button class="btn primary" id="saveBtn" type="submit">Save Entry</button>
-        <div id="saveMsg" class="save-msg"></div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Save Entry</button>
+          <button type="button" id="syncNow" class="btn">Sync Now</button>
+        </div>
+
+        <p id="message" class="message" aria-live="polite"></p>
       </form>
     </section>
 
-    <section class="list-wrap">
-      <h2>Recent Entries</h2>
-      <div id="entriesList" class="list empty">
-        <div class="empty-state"><div class="icon">📄</div><div>No entries yet. Add your first transaction above.</div></div>
+    <section id="list" class="panel">
+      <div class="list-actions">
+        <button id="refreshList" class="btn">Refresh</button>
+        <span id="listCount" class="muted"></span>
       </div>
+      <div id="entries"></div>
+    </section>
+
+    <section id="about" class="panel">
+      <h3>Property Revolution Finance App</h3>
+      <p>Track incomes and expenses, capture receipt photos, and sync everything to Google Sheets.</p>
+      <ul class="bullets">
+        <li>Works on desktop and phone</li>
+        <li>Red / White / Black branding</li>
+        <li>Offline-first queue; sync later</li>
+      </ul>
+      <img src="assets/PR.jpg" alt="Property Revolution" class="about-img" onerror="this.style.display='none'">
     </section>
   </main>
 
-  <dialog id="settingsModal"><form method="dialog" class="settings">
-    <h3>App Settings</h3>
-    <label>Web App URL <input id="cfgUrl" type="url" required /></label>
-    <menu><button value="cancel" class="btn">Cancel</button><button id="saveSettings" value="default" class="btn primary">Save</button></menu>
-    <p class="hint">Open with <b>#reset</b> after changing URL.</p>
-  </form></dialog>
+  <dialog id="settingsDialog">
+    <form method="dialog" class="settings">
+      <h3>Settings</h3>
+      <label>Google Apps Script Web App URL
+        <input type="url" id="webAppUrl" placeholder="https://script.google.com/macros/s/XXXX/exec">
+      </label>
+      <label class="row-inline">
+        <input type="checkbox" id="opaqueMode">
+        <span>Assume no-CORS mode (treat opaque responses as success)</span>
+      </label>
+      <div class="settings-actions">
+        <button value="cancel" class="btn">Close</button>
+        <button id="testBackend" class="btn ghost" value="cancel" type="button">Test Connection</button>
+      </div>
+      <p id="settingsMsg" class="message"></p>
+    </form>
+  </dialog>
 
-  <script defer src="app.v14.js?v=v14"></script>
+  <footer class="footer">
+    <small>© <span id="year"></span> Property Revolution. All rights reserved.</small>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>
