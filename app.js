@@ -1,10 +1,11 @@
-// Property Revolution Finance App — Frontend
-// Prefilled with Dawie's backend URL. PWA-ready.
+// Property Revolution Finance App — Frontend (Payment Method: dropdown)
+// Prefilled with your backend URL. PWA-ready.
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 
 const DEFAULT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycby0Y4LQsQXf_XmEUgrDfox6BQx5nnUXDjlP77MFCikLBQjAgV-Vi-JeGB5_u5JavAxTIw/exec";
+const PAYMENT_METHODS = ['Card','EFT','Cash','SnapScan','Zapper','Cheque','Other'];
 
 const state = {
   entries: [],
@@ -65,6 +66,22 @@ useCamera.addEventListener('click', () => {
   receiptInput.setAttribute('capture','environment');
   receiptInput.click();
 });
+
+// Populate Payment Method select
+(function initPaymentMethods(){
+  const sel = $('#paymentMethod');
+  sel.innerHTML = PAYMENT_METHODS.map(m => `<option value="${m}">${m}</option>`).join('');
+  sel.value = 'Card';
+  const otherRow = $('#otherPaymentRow');
+  const otherInput = $('#otherPayment');
+  const toggleOther = () => {
+    const isOther = sel.value === 'Other';
+    otherRow.style.display = isOther ? 'block' : 'none';
+    if (!isOther) otherInput.value = '';
+  };
+  sel.addEventListener('change', toggleOther);
+  toggleOther();
+})();
 
 // Cost Codes
 async function loadCostCodes() {
@@ -180,6 +197,10 @@ refreshList.addEventListener('click', renderList);
 // Submit
 form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
+  const paymentSel = $('#paymentMethod');
+  const otherVal = $('#otherPayment').value.trim();
+  const paymentValue = paymentSel.value === 'Other' ? (otherVal || 'Other') : paymentSel.value;
+
   const entry = {
     id: crypto.randomUUID(),
     type: $('#type').value,
@@ -189,7 +210,7 @@ form.addEventListener('submit', async (ev) => {
     description: $('#description').value,
     whatFor: $('#whatFor').value,
     vendor: $('#vendor').value,
-    paymentMethod: $('#paymentMethod').value,
+    paymentMethod: paymentValue,
     imageDataUrl,
     createdAt: new Date().toISOString(),
     synced: false
@@ -199,6 +220,11 @@ form.addEventListener('submit', async (ev) => {
 
   addEntry(entry);
   form.reset();
+  // reset payment method default
+  $('#paymentMethod').value = 'Card';
+  $('#otherPayment').value = '';
+  document.getElementById('otherPaymentRow').style.display = 'none';
+
   imageDataUrl = null;
   preview.hidden = true;
   setMessage('Saved locally. Attempting sync…');

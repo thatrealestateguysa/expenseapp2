@@ -71,8 +71,11 @@
             <input type="text" id="vendor" maxlength="120" placeholder="e.g., Makro">
           </div>
           <div>
-            <label>Payment Method (optional)</label>
-            <input type="text" id="paymentMethod" maxlength="60" placeholder="Card / EFT / Cash">
+            <label>Payment Method</label>
+            <select id="paymentMethod" required></select>
+            <div id="otherPaymentRow" class="row" style="margin-top:.35rem;display:none">
+              <input type="text" id="otherPayment" maxlength="40" placeholder="Type a custom method">
+            </div>
           </div>
         </div>
 
