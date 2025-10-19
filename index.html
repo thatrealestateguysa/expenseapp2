@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,17 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Property Revolution Expenses</title>
   <meta name="theme-color" content="#D40511" />
-  <link rel="manifest" href="manifest.json?v=v6" />
+  <link rel="manifest" href="manifest.json?v=v8" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.v6.css?v=v6" />
+  <link rel="stylesheet" href="styles.v8.css?v=v8" />
   <script>
     if (location.hash === '#reset' && 'serviceWorker' in navigator) {
       caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
         .then(() => navigator.serviceWorker.getRegistrations())
         .then(rs => Promise.all(rs.map(r => r.unregister())))
-        .then(() => location.replace(location.href.split('#')[0] + '?t=1760811259'));
+        .then(() => location.replace(location.origin + location.pathname + '?t=' + Date.now()));
     }
   </script>
+  <style>.debug{position:fixed;bottom:8px;left:8px;background:#111;color:#fff;padding:8px 10px;border-radius:10px;font:12px/1.2 ui-sans-serif;opacity:.9;z-index:9999;}</style>
 </head>
 <body>
   <header class="app-header">
@@ -65,10 +67,7 @@
         </div>
         <div class="field">
           <label for="amount">Amount (ZAR)</label>
-          <div class="prefix">
-            <span>R</span>
-            <input id="amount" name="amount" type="number" step="0.01" min="0" required />
-          </div>
+          <div class="prefix"><span>R</span><input id="amount" name="amount" type="number" step="0.01" min="0" required /></div>
         </div>
         <div class="field">
           <label>Receipt Image</label>
@@ -89,10 +88,7 @@
     <section class="list-wrap">
       <h2>Recent Entries</h2>
       <div id="entriesList" class="list empty">
-        <div class="empty-state">
-          <div class="icon">📄</div>
-          <div>No entries yet. Add your first transaction above.</div>
-        </div>
+        <div class="empty-state"><div class="icon">📄</div><div>No entries yet. Add your first transaction above.</div></div>
       </div>
     </section>
   </main>
@@ -114,10 +110,10 @@
     </form>
   </dialog>
 
-  <footer class="footer">
-    <small>© Property Revolution — built for KW Explore • Works offline & installable</small>
-  </footer>
+  <div id="dbg" class="debug" style="display:none"></div>
 
-  <script src="app.v6.js?v=v6"></script>
+  <footer class="footer"><small>© Property Revolution — built for KW Explore</small></footer>
+
+  <script defer src="app.v8.js?v=v8"></script>
 </body>
 </html>
