@@ -1,5 +1,5 @@
 // Simple offline cache (basic PWA)
-const CACHE = 'prfa-v1';
+const CACHE = 'prfa-v3'; // bumped again
 const ASSETS = [
   './',
   './index.html',

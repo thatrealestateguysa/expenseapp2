@@ -1,11 +1,11 @@
-// Property Revolution Finance App — Frontend (Payment Method: dropdown)
+// Property Revolution Finance App — Frontend (Payment Method: Card/EFT/Cash/Other)
 // Prefilled with your backend URL. PWA-ready.
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 
 const DEFAULT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycby0Y4LQsQXf_XmEUgrDfox6BQx5nnUXDjlP77MFCikLBQjAgV-Vi-JeGB5_u5JavAxTIw/exec";
-const PAYMENT_METHODS = ['Card','EFT','Cash','SnapScan','Zapper','Cheque','Other'];
+const PAYMENT_METHODS = ['Card','EFT','Cash','Other'];
 
 const state = {
   entries: [],
@@ -77,6 +77,7 @@ useCamera.addEventListener('click', () => {
   const toggleOther = () => {
     const isOther = sel.value === 'Other';
     otherRow.style.display = isOther ? 'block' : 'none';
+    otherInput.required = isOther;
     if (!isOther) otherInput.value = '';
   };
   sel.addEventListener('change', toggleOther);
