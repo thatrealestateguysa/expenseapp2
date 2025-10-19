@@ -4,7 +4,7 @@
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 
-const DEFAULT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwTa5bFBif0OUXxY4XW2NGByn41JzMGdIGJXC-3KucWyvgtRfLPvwdSJzGZQ2ixErJLzA/exec";
+const DEFAULT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycby0Y4LQsQXf_XmEUgrDfox6BQx5nnUXDjlP77MFCikLBQjAgV-Vi-JeGB5_u5JavAxTIw/exec";
 
 const state = {
   entries: [],
@@ -273,12 +273,10 @@ async function testBackend(){
 
 // Init
 function init(){
-  // Service worker
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js'); }
   loadEntries();
   renderList();
   loadCostCodes();
-  // Prefill settings
   webAppUrl.value = state.webAppUrl;
   opaqueMode.checked = state.opaqueMode;
 }
